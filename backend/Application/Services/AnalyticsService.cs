@@ -20,64 +20,65 @@ namespace SalesPerf.Backend.Application.Services
             _context = context;
         }
 
-        
-        
+
+
         public async Task<KpiResponseDto> GetKpisAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
         {
             var (startDate, endDate) = GetDateRange(from, to);
 
             var salesQuery = _context.Sales
-//                 .AsNoTracking()
-//  Exclusive upper bounds (< endDate). Prevents fractional second rounding leaks in PostgreSQL/SQL Server.
+                //                 .AsNoTracking()
+                //  Exclusive upper bounds (< endDate). Prevents fractional second rounding leaks in PostgreSQL/SQL Server.
                 .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid);
 
-//  (Bulletproof): EF Core often crashes on nested Sum() inside GroupBy. 
+            //  (Bulletproof): EF Core often crashes on nested Sum() inside GroupBy. 
             // We split into Count (Query 1) and SelectMany Aggregates (Query 2).
             var salesCount = await salesQuery.CountAsync(cancellationToken);
 
-            if (salesCount == 0) 
+            if (salesCount == 0)
                 return new KpiResponseDto(0, 0, 0, 0, 0, null);
 
             var itemAggs = await salesQuery
                 .SelectMany(s => s.Items)
                 .GroupBy(x => 1)
-                .Select(g => new {
+                .Select(g => new
+                {
                     TotalRevenue = g.Sum(i => i.SalePrice * i.Quantity),
                     TotalCost = g.Sum(i => i.CostPrice * i.Quantity)
                 })
                 .FirstOrDefaultAsync(cancellationToken);
 
-var totalRev = itemAggs?.TotalRevenue ?? 0;
-var totalCost = itemAggs?.TotalCost ?? 0;
-var grossProfit = totalRev - totalCost;
-var margin = totalRev != 0 ? grossProfit / totalRev : 0;
-var averageCheck = salesCount != 0 ? totalRev / salesCount : 0;
+            var totalRev = itemAggs?.TotalRevenue ?? 0;
+            var totalCost = itemAggs?.TotalCost ?? 0;
+            var grossProfit = totalRev - totalCost;
+            var margin = totalRev != 0 ? grossProfit / totalRev : 0;
+            var averageCheck = salesCount != 0 ? totalRev / salesCount : 0;
 
-var topManagerName = await salesQuery
-//  Nested Sum Translation Crash!
-                // GroupBy followed by a nested g.Sum(x => x.Items.Sum(...)) cannot be translated by EF Core to SQL.
-                // It throws InvalidOperationException. We MUST flatten it with SelectMany just like we did in GetManagersRating.
-                .SelectMany(s => s.Items, (s, i) => new { s.ManagerId, s.Manager.Name, i.SalePrice, i.Quantity })
-                .GroupBy(x => new { x.ManagerId, x.Name })
-                .Select(g => new { ManagerId = g.Key.ManagerId, ManagerName = g.Key.Name, Revenue = g.Sum(x => x.SalePrice * x.Quantity) })
-                .OrderByDescending(x => x.Revenue)
-                .ThenBy(x => x.ManagerName)
-                .ThenBy(x => x.ManagerId)
-                .Select(x => x.ManagerName)
-                .FirstOrDefaultAsync(cancellationToken);
+            var topManagerName = await salesQuery
+                            //  Nested Sum Translation Crash!
+                            // GroupBy followed by a nested g.Sum(x => x.Items.Sum(...)) cannot be translated by EF Core to SQL.
+                            // It throws InvalidOperationException. We MUST flatten it with SelectMany just like we did in GetManagersRating.
+                            .SelectMany(s => s.Items, (s, i) => new { s.ManagerId, s.Manager.Name, i.SalePrice, i.Quantity })
+                            .GroupBy(x => new { x.ManagerId, x.Name })
+                            .Select(g => new { ManagerId = g.Key.ManagerId, ManagerName = g.Key.Name, Revenue = g.Sum(x => x.SalePrice * x.Quantity) })
+                            .OrderByDescending(x => x.Revenue)
+                            .ThenBy(x => x.ManagerName)
+                            .ThenBy(x => x.ManagerId)
+                            .Select(x => x.ManagerName)
+                            .FirstOrDefaultAsync(cancellationToken);
 
             return new KpiResponseDto(
-                totalRev, 
-                grossProfit, 
-                margin, 
-                salesCount, 
-                averageCheck, 
+                totalRev,
+                grossProfit,
+                margin,
+                salesCount,
+                averageCheck,
                 topManagerName
             );
         }
 
-        
-        
+
+
         public async Task<List<ManagerRatingDto>> GetManagersRatingAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
         {
             var (startDate, endDate) = GetDateRange(from, to);
@@ -96,8 +97,8 @@ var topManagerName = await salesQuery
 
             // 2. Fetch True Sales Count (avoids INNER JOIN drop of empty sales)
             var salesCounts = await _context.Sales
-//                 .AsNoTracking()
-//  Exclusive upper bound
+                //                 .AsNoTracking()
+                //  Exclusive upper bound
                 .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid)
                 .GroupBy(s => s.ManagerId)
                 .Select(g => new { ManagerId = g.Key, Count = g.Count() })
@@ -105,12 +106,13 @@ var topManagerName = await salesQuery
 
             // 3. Fetch Revenue Aggregates via SelectMany
             var aggregates = await _context.Sales
-//                 .AsNoTracking()
-//  Exclusive upper bound
+                //                 .AsNoTracking()
+                //  Exclusive upper bound
                 .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid)
                 .SelectMany(s => s.Items, (s, i) => new { s.ManagerId, i.SalePrice, i.CostPrice, i.Quantity })
                 .GroupBy(x => x.ManagerId)
-                .Select(g => new {
+                .Select(g => new
+                {
                     ManagerId = g.Key,
                     Revenue = g.Sum(x => x.SalePrice * x.Quantity),
                     Cost = g.Sum(x => x.CostPrice * x.Quantity)
@@ -124,15 +126,16 @@ var topManagerName = await salesQuery
             var scDict = salesCounts.ToDictionary(a => a.ManagerId);
 
             // 4. Zip in memory (Now strictly O(N))
-            var result = allManagers.Select(m => {
+            var result = allManagers.Select(m =>
+            {
                 aggDict.TryGetValue(m.Id, out var agg);
                 scDict.TryGetValue(m.Id, out var sc);
-                
+
                 var rev = agg?.Revenue ?? 0;
                 var cost = agg?.Cost ?? 0;
                 var count = sc?.Count ?? 0;
                 var gp = rev - cost;
-                
+
                 return new ManagerRatingDto(
                     m.Id,
                     m.Name,
@@ -151,17 +154,18 @@ var topManagerName = await salesQuery
             return result;
         }
 
-        
-        
+
+
         public async Task<List<ChartDataDto>> GetChartDataAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
         {
             var (startDate, endDate) = GetDateRange(from, to);
-            
+
             var sales = await _context.Sales
-//                 .AsNoTracking()
-//  Exclusive upper bound
+                //                 .AsNoTracking()
+                //  Exclusive upper bound
                 .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid)
-                .Select(s => new {
+                .Select(s => new
+                {
                     s.Date,
                     Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
                     Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
@@ -174,16 +178,17 @@ var topManagerName = await salesQuery
                     // If the server OS uses a non-Gregorian calendar (e.g. Thai Buddhist), .ToString() outputs year 2569!
                     // This crashes the frontend Recharts parsing. We MUST enforce InvariantCulture.
                     g => g.Key.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture),
-                    g => new {
+                    g => new
+                    {
                         Revenue = g.Sum(x => x.Revenue),
                         GrossProfit = g.Sum(x => x.Revenue - x.Cost),
                         SalesCount = g.Count()
                     }
                 );
 
-//  Fill in missing days!
-var chartData = new List<ChartDataDto>();
-//  Changed loop condition to < endDate.Date to match exclusive bound logic
+            //  Fill in missing days!
+            var chartData = new List<ChartDataDto>();
+            //  Changed loop condition to < endDate.Date to match exclusive bound logic
             for (var date = startDate.Date; date < endDate.Date; date = date.AddDays(1))
             {
                 var dateStr = date.ToString("yyyy-MM-dd", System.Globalization.CultureInfo.InvariantCulture);
@@ -200,13 +205,13 @@ var chartData = new List<ChartDataDto>();
             return chartData;
         }
 
-        
-        
+
+
         public async Task<List<RecentSaleDto>> GetRecentSalesAsync(int limit = 10, CancellationToken cancellationToken = default)
         {
             limit = Math.Clamp(limit, 1, 100);
 
-//  Enum Translation Crash!
+            //  Enum Translation Crash!
             // Calling s.Status.ToString() inside an EF Core projection throws an InvalidOperationException 
             // if the enum is stored as an integer (default), because SQL cannot natively cast int to the C# enum string.
             // We MUST project the raw enum and do the .ToString() conversion in C# memory.
@@ -215,7 +220,8 @@ var chartData = new List<ChartDataDto>();
                 .OrderByDescending(s => s.Id)
                 .ThenByDescending(s => s.Id)
                 .Take(limit)
-                .Select(s => new {
+                .Select(s => new
+                {
                     s.Id,
                     s.Date,
                     ManagerName = s.Manager.Name,
@@ -241,13 +247,13 @@ var chartData = new List<ChartDataDto>();
 
         private (DateTimeOffset startDate, DateTimeOffset endDate) GetDateRange(DateTimeOffset? from, DateTimeOffset? to)
         {
-//  Fuzzing Crash Prevention (DateTime Boundaries)
+            //  Fuzzing Crash Prevention (DateTime Boundaries)
             // If a malicious user or fuzzer sends ?to=0001-01-01, endDateRaw.AddDays(-30) throws ArgumentOutOfRangeException (Year < 1).
             // If they send ?to=9999-12-31, .AddDays(1) below throws ArgumentOutOfRangeException (Year > 9999).
             // We MUST clamp the raw inputs to safe calendar boundaries before applying any date math.
             var safeMin = DateTimeOffset.MinValue.AddDays(30);
             var safeMax = DateTimeOffset.MaxValue.AddDays(-1);
-            
+
             var endDateRaw = to ?? DateTimeOffset.UtcNow;
             if (endDateRaw > safeMax) endDateRaw = safeMax;
             if (endDateRaw < safeMin) endDateRaw = safeMin;
@@ -255,7 +261,7 @@ var chartData = new List<ChartDataDto>();
             var startDateRaw = from ?? endDateRaw.AddDays(-30);
             if (startDateRaw > safeMax) startDateRaw = safeMax;
             if (startDateRaw < safeMin) startDateRaw = safeMin;
-            
+
             // If the user selects a range where from > to, the loop condition fails and queries return empty data.
             // Defensive programming: automatically swap them.
             if (startDateRaw > endDateRaw)
@@ -264,8 +270,8 @@ var chartData = new List<ChartDataDto>();
             }
 
             var startDate = new DateTimeOffset(startDateRaw.Date, startDateRaw.Offset);
-            
-//  Cross-DST Boundary Loss
+
+            //  Cross-DST Boundary Loss
             // If the requested 'from' and 'to' have different timezone offsets (e.g. they span across a Daylight Saving Time shift),
             // calculating endDate.Date on a different offset will cause the calendar loop in GetChartData to mismatch the shifted data.
             // We MUST normalize endDate to have the EXACT same timezone offset as startDate to guarantee a uniform calendar grid.

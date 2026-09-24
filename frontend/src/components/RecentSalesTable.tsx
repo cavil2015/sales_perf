@@ -1,18 +1,23 @@
-import { RecentSaleDto } from '../hooks/useAnalyticsDashboard';
-import { formatCurrency } from '../utils/formatters';
-import { format } from 'date-fns';
+import { RecentSaleDto } from "../hooks/useAnalyticsDashboard";
+import { formatCurrency } from "../utils/formatters";
+import { format } from "date-fns";
 
 interface RecentSalesTableProps {
   recentSales: RecentSaleDto[] | null;
   loading: boolean;
 }
 
-export function RecentSalesTable({ recentSales, loading }: RecentSalesTableProps) {
+export function RecentSalesTable({
+  recentSales,
+  loading,
+}: RecentSalesTableProps) {
   return (
     <div className="bg-white rounded-xl shadow-sm border border-slate-100 p-6">
       <h2 className="text-lg font-semibold mb-4">Recent Sales</h2>
       {loading && recentSales === null ? (
-        <div className="h-40 flex items-center justify-center text-gray-400">Loading sales...</div>
+        <div className="h-40 flex items-center justify-center text-gray-400">
+          Loading sales...
+        </div>
       ) : recentSales === null ? (
         <div className="text-red-400 text-sm">Failed to load sales</div>
       ) : recentSales.length === 0 ? (
@@ -31,20 +36,31 @@ export function RecentSalesTable({ recentSales, loading }: RecentSalesTableProps
             </thead>
             <tbody className="text-sm">
               {recentSales.map((sale) => (
-                <tr key={sale.id} className="border-b border-slate-50 hover:bg-slate-50 transition-colors">
-                  <td className="py-3 pr-4 text-slate-600">{format(new Date(sale.date), 'MMM d, yyyy')}</td>
+                <tr
+                  key={sale.id}
+                  className="border-b border-slate-50 hover:bg-slate-50 transition-colors"
+                >
+                  <td className="py-3 pr-4 text-slate-600">
+                    {format(new Date(sale.date), "MMM d, yyyy")}
+                  </td>
                   <td className="py-3 px-4 font-medium">{sale.managerName}</td>
                   <td className="py-3 px-4">{sale.customerName}</td>
                   <td className="py-3 px-4">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
-                      sale.status === 'Paid' ? 'bg-green-100 text-green-800' :
-                      sale.status === 'Refunded' ? 'bg-yellow-100 text-yellow-800' :
-                      'bg-red-100 text-red-800'
-                    }`}>
+                    <span
+                      className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                        sale.status === "Paid"
+                          ? "bg-green-100 text-green-800"
+                          : sale.status === "Refunded"
+                            ? "bg-yellow-100 text-yellow-800"
+                            : "bg-red-100 text-red-800"
+                      }`}
+                    >
                       {sale.status}
                     </span>
                   </td>
-                  <td className="py-3 pl-4 text-right font-semibold">{formatCurrency(sale.revenue)}</td>
+                  <td className="py-3 pl-4 text-right font-semibold">
+                    {formatCurrency(sale.revenue)}
+                  </td>
                 </tr>
               ))}
             </tbody>

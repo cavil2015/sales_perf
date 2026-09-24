@@ -12,20 +12,20 @@ namespace SalesPerf.Backend.Domain.Entities
     public sealed class SaleItem : IComparable<SaleItem>, IEquatable<SaleItem>, ISpanFormattable
     {
         private readonly int _id;
-        public int Id 
-        { 
-            get => _id; 
+        public int Id
+        {
+            get => _id;
             init => _id = value >= 0 ? value : throw new ArgumentException("Entity ID cannot be negative.");
         }
 
         private readonly int _saleId;
-        public required int SaleId 
+        public required int SaleId
         {
             get => _saleId;
             init => _saleId = value >= 0 ? value : throw new ArgumentException("SaleId must be valid.");
         }
-        
-//  Explicit Proxy Defeat & Eager Loading Enforcement
+
+        //  Explicit Proxy Defeat & Eager Loading Enforcement
         // By marking this class as `sealed` and navigation properties as non-`virtual`, 
         // we explicitly DEFEAT Entity Framework's `UseLazyLoadingProxies()`. 
         // Lazy loading in analytics loops causes catastrophic N+1 Database Query Storms. 
@@ -35,17 +35,17 @@ namespace SalesPerf.Backend.Domain.Entities
         public Sale? Sale { get; private set; }
 
         private readonly int _productId;
-        public required int ProductId 
+        public required int ProductId
         {
             get => _productId;
             init => _productId = value >= 0 ? value : throw new ArgumentException("ProductId must be valid.");
         }
-        
+
         [JsonIgnore]
         public Product? Product { get; private set; }
 
         private readonly int _quantity;
-        public required int Quantity 
+        public required int Quantity
         {
             get => _quantity;
             init => _quantity = value >= 0 ? value : throw new ArgumentException("Quantity must be greater than zero.");
@@ -58,7 +58,7 @@ namespace SalesPerf.Backend.Domain.Entities
         // to parse them safely via a `BigDecimal` library (like decimal.js).
         private readonly decimal _salePrice;
         [JsonNumberHandling(JsonNumberHandling.WriteAsString)]
-        public required decimal SalePrice 
+        public required decimal SalePrice
         {
             get => _salePrice;
             init => _salePrice = value >= 0 ? value : throw new ArgumentException("SalePrice cannot be negative.");
@@ -66,7 +66,7 @@ namespace SalesPerf.Backend.Domain.Entities
 
         private readonly decimal _costPrice;
         [JsonNumberHandling(JsonNumberHandling.WriteAsString)]
-        public required decimal CostPrice 
+        public required decimal CostPrice
         {
             get => _costPrice;
             init => _costPrice = value >= 0 ? value : throw new ArgumentException("CostPrice cannot be negative.");
@@ -75,7 +75,7 @@ namespace SalesPerf.Backend.Domain.Entities
         [NotMapped]
         [JsonNumberHandling(JsonNumberHandling.WriteAsString)]
         public decimal Revenue => SalePrice * Quantity;
-        
+
         [NotMapped]
         [JsonNumberHandling(JsonNumberHandling.WriteAsString)]
         public decimal Profit => (SalePrice - CostPrice) * Quantity;
@@ -85,7 +85,7 @@ namespace SalesPerf.Backend.Domain.Entities
         public decimal MarginPercent => Revenue == 0m ? 0m : Profit / Revenue;
 
         [Timestamp]
-        
+
         public uint Version { get; set; }
 
         public bool Equals(SaleItem? other)
@@ -99,7 +99,7 @@ namespace SalesPerf.Backend.Domain.Entities
         public override bool Equals(object? obj) => Equals(obj as SaleItem);
 
         private int? _cachedHashCode;
-        public override int GetHashCode() 
+        public override int GetHashCode()
         {
             if (_cachedHashCode.HasValue) return _cachedHashCode.Value;
             _cachedHashCode = (Id == 0) ? base.GetHashCode() : HashCode.Combine(typeof(SaleItem), Id);

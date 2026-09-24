@@ -18,18 +18,18 @@ namespace SalesPerf.Backend.Domain.Entities
     public sealed class Customer : IComparable<Customer>, IEquatable<Customer>
     {
         private readonly int _id;
-        public int Id 
-        { 
-            get => _id; 
+        public int Id
+        {
+            get => _id;
             init => _id = value >= 0 ? value : throw new ArgumentException("Entity ID cannot be negative.");
         }
 
         private readonly string _name = null!;
         [MaxLength(100)]
-        public required string Name 
-        { 
-            get => _name; 
-            init 
+        public required string Name
+        {
+            get => _name;
+            init
             {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Name cannot be empty.");
                 _name = value.Trim();
@@ -38,10 +38,10 @@ namespace SalesPerf.Backend.Domain.Entities
 
         private readonly string _company = null!;
         [MaxLength(150)]
-        public required string Company 
-        { 
-            get => _company; 
-            init 
+        public required string Company
+        {
+            get => _company;
+            init
             {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Company cannot be empty.");
                 _company = value.Trim();
@@ -51,14 +51,14 @@ namespace SalesPerf.Backend.Domain.Entities
         // 'Segment' is stored as a string. If a developer accidentally passes "Enterprize" (typo),
         // EF Core will save it. This permanently fragments the database and destroys Analytics `GROUP BY` pie charts.
         // We MUST restrict `Segment` strictly to the known business vocabulary at the Domain boundary.
-        
-// , I used `StringComparer.OrdinalIgnoreCase`. This meant if the frontend sent "ENTERPRISE",
+
+        // , I used `StringComparer.OrdinalIgnoreCase`. This meant if the frontend sent "ENTERPRISE",
         // it passed validation, and "ENTERPRISE" was saved to the DB.
         // Because PostgreSQL is CASE-SENSITIVE, the SQL `GROUP BY Segment` would group "ENTERPRISE" and "Enterprise" 
         // as TWO DIFFERENT PIE CHART SLICES, bypassing our fix!
         // We MUST use a Dictionary to map ANY input casing strictly to the Canonical Casing.
-        private static readonly Dictionary<string, string> CanonicalSegments = new(StringComparer.OrdinalIgnoreCase) 
-        { 
+        private static readonly Dictionary<string, string> CanonicalSegments = new(StringComparer.OrdinalIgnoreCase)
+        {
             { "Enterprise", "Enterprise" },
             { "Mid-Market", "Mid-Market" },
             { "Small Business", "Small Business" },
@@ -67,13 +67,13 @@ namespace SalesPerf.Backend.Domain.Entities
 
         private readonly string _segment = null!;
         [MaxLength(50)]
-        public required string Segment 
-        { 
-            get => _segment; 
-            init 
+        public required string Segment
+        {
+            get => _segment;
+            init
             {
                 if (string.IsNullOrWhiteSpace(value)) throw new ArgumentException("Segment cannot be empty.");
-                if (!CanonicalSegments.TryGetValue(value.Trim(), out string? canonical)) 
+                if (!CanonicalSegments.TryGetValue(value.Trim(), out string? canonical))
                     throw new ArgumentException($"Data Corruption: Invalid Segment '{value.Trim()}'.");
                 _segment = canonical;
             }
@@ -93,7 +93,7 @@ namespace SalesPerf.Backend.Domain.Entities
 
         public override bool Equals(object? obj) => Equals(obj as Customer);
 
-        public override int GetHashCode() 
+        public override int GetHashCode()
         {
             return (Id == 0) ? base.GetHashCode() : HashCode.Combine(typeof(Customer), Id);
         }
@@ -109,7 +109,7 @@ namespace SalesPerf.Backend.Domain.Entities
 
         public override string ToString() => $"Customer(Id={Id}, Name='{Name}', Company='{Company}')";
 
-//  Multi-Dimensional Sorting Instability (UI Jitter)
+        //  Multi-Dimensional Sorting Instability (UI Jitter)
         // If we sort purely by `Company` or `Name`, and two customers work at the same "Acme Corp",
         // their relative order will randomly flip based on Postgres B-Tree disk fetch order (UI Jitter).
         // We MUST chain the sorting dimensions to guarantee 100% deterministic UI rendering.

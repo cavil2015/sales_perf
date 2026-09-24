@@ -1,21 +1,27 @@
-import { useState } from 'react';
-import { useAnalyticsDashboard, DateFilter } from './hooks/useAnalyticsDashboard';
-import { KpiGrid } from './components/KpiGrid';
-import { SalesChart } from './components/SalesChart';
-import { ManagerLeaderboard } from './components/ManagerLeaderboard';
-import { RecentSalesTable } from './components/RecentSalesTable';
+import { useState } from "react";
+import {
+  useAnalyticsDashboard,
+  DateFilter,
+} from "./hooks/useAnalyticsDashboard";
+import { KpiGrid } from "./components/KpiGrid";
+import { SalesChart } from "./components/SalesChart";
+import { ManagerLeaderboard } from "./components/ManagerLeaderboard";
+import { RecentSalesTable } from "./components/RecentSalesTable";
 
 function App() {
-  const [dateRange, setDateRange] = useState<DateFilter>('30days');
-  
+  const [dateRange, setDateRange] = useState<DateFilter>("30days");
+
   // Custom Hook fully encapsulates fetching, loading states, and error handling
-  const { loading, error, kpis, managers, chartData, recentSales } = useAnalyticsDashboard(dateRange);
+  const { loading, error, kpis, managers, chartData, recentSales } =
+    useAnalyticsDashboard(dateRange);
 
   if (error) {
     return (
       <div className="flex h-screen items-center justify-center bg-gray-50">
         <div className="rounded-lg bg-red-50 p-6 shadow text-center text-red-600">
-          <h2 className="text-xl font-semibold mb-2">Failed to load dashboard</h2>
+          <h2 className="text-xl font-semibold mb-2">
+            Failed to load dashboard
+          </h2>
           <p>{error}</p>
         </div>
       </div>
@@ -26,15 +32,17 @@ function App() {
     <div className="min-h-screen bg-gray-50 text-slate-800 font-sans p-6">
       <header className="max-w-7xl mx-auto mb-8 flex justify-between items-center">
         <div className="flex items-center gap-4">
-            <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Sales Performance</h1>
-            {loading && kpis && (
-                <span className="flex h-3 w-3 relative mt-1" aria-hidden="true">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
-                </span>
-            )}
+          <h1 className="text-3xl font-bold text-slate-900 tracking-tight">
+            Sales Performance
+          </h1>
+          {loading && kpis && (
+            <span className="flex h-3 w-3 relative mt-1" aria-hidden="true">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
+              <span className="relative inline-flex rounded-full h-3 w-3 bg-blue-500"></span>
+            </span>
+          )}
         </div>
-        <select 
+        <select
           aria-label="Select Date Range"
           value={dateRange}
           onChange={(e) => setDateRange(e.target.value as DateFilter)}

@@ -20,9 +20,9 @@ namespace SalesPerf.Backend.Domain.Entities
         // We MUST block negative IDs at the Domain boundary.
         private readonly int _id;
 
-        public int Id 
-        { 
-            get => _id; 
+        public int Id
+        {
+            get => _id;
             init => _id = value >= 0 ? value : throw new ArgumentException("Entity ID cannot be negative.");
         }
 
@@ -32,12 +32,12 @@ namespace SalesPerf.Backend.Domain.Entities
         private readonly string _name = null!;
 
         [MaxLength(100)]
-        public required string Name 
-        { 
-            get => _name; 
-            init 
+        public required string Name
+        {
+            get => _name;
+            init
             {
-                if (string.IsNullOrWhiteSpace(value)) 
+                if (string.IsNullOrWhiteSpace(value))
                     throw new ArgumentException("Category Name cannot be empty or whitespace.");
                 _name = value.Trim();
             }
@@ -57,7 +57,7 @@ namespace SalesPerf.Backend.Domain.Entities
         // Delegate the untyped Equals to the strongly-typed IEquatable implementation
         public override bool Equals(object? obj) => Equals(obj as Category);
 
-        public override int GetHashCode() 
+        public override int GetHashCode()
         {
             return (Id == 0) ? base.GetHashCode() : HashCode.Combine(typeof(Category), Id);
         }

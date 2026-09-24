@@ -47,10 +47,10 @@ namespace SalesPerf.Backend.Infrastructure.Data
                 {
                     string prefix = productPrefixes[i % productPrefixes.Length];
                     int version = (i / productPrefixes.Length) + 1;
-                    
-                    products.Add(new Product 
+
+                    products.Add(new Product
                     {
-                        Name = $"{category.Name} {prefix} Edition v{version}", 
+                        Name = $"{category.Name} {prefix} Edition v{version}",
                         CategoryId = category.Id
                     });
                 }
@@ -96,17 +96,17 @@ namespace SalesPerf.Backend.Infrastructure.Data
             var startDate = DateTimeOffset.UtcNow.AddMonths(-12);
 
             for (int i = 0; i < numSales; i++)
-{
+            {
                 var manager = managers[random.Next(managers.Count)];
                 var customer = customers[random.Next(customers.Count)];
 
                 int managerSkillIndex = manager.Id % 3; // Restored manager.Id since it's populated now
-                
+
                 int daysToAdd = random.Next(0, 365);
-//                 if (daysToAdd > 270 && random.NextDouble() < 0.3) 
-{
-                daysToAdd = random.Next(270, 365);
-}
+                //                 if (daysToAdd > 270 && random.NextDouble() < 0.3) 
+                {
+                    daysToAdd = random.Next(270, 365);
+                }
                 if (managerSkillIndex == 0 && daysToAdd > 150 && daysToAdd < 180)
                 {
                     daysToAdd += 30;
@@ -130,18 +130,18 @@ namespace SalesPerf.Backend.Infrastructure.Data
                     CustomerId = customer.Id, // Restored scalar ID
                     Date = saleDate
                 };
-                
+
                 // Force state transition to bypass encapsulation
                 if (status == SaleStatus.Cancelled) sale.Cancel();
                 if (status == SaleStatus.Refunded) sale.Refund();
-                
+
                 // Manually inject items since Sale.Items will be IReadOnlyCollection
                 var localItems = new List<SaleItem>(numItems);
-                
+
                 for (int j = 0; j < numItems; j++)
                 {
                     var product = products[random.Next(products.Count)];
-                    
+
                     decimal baseCost = random.Next(100, 1000);
                     // Must map manually since we don't have the Category loaded in product due to IDs
                     decimal marginPercent = product.Name.Contains("Software") ? (decimal)(random.NextDouble() * 0.5 + 0.3) :
@@ -150,9 +150,9 @@ namespace SalesPerf.Backend.Infrastructure.Data
                                             (decimal)(random.NextDouble() * 0.2 + 0.2);
 
                     decimal price = baseCost / (1 - marginPercent);
-                    
-                    if (random.NextDouble() < 0.05) 
-{
+
+                    if (random.NextDouble() < 0.05)
+                    {
                         // When generating a "huge deal", the original code called random.Next(5, 20) TWICE independently!
                         // This means baseCost could be multiplied by 20, while price is only multiplied by 5.
                         // This accidentally creates massive, unintended negative margins (losses) in the analytics data, 
@@ -165,11 +165,12 @@ namespace SalesPerf.Backend.Infrastructure.Data
 
                     sale.AddItem(new SaleItem
                     {
-                        ProductId = product.Id, SaleId = 0, // Restored scalar ID
+                        ProductId = product.Id,
+                        SaleId = 0, // Restored scalar ID
 
                         Quantity = random.Next(1, 10),
-//  Precision Truncation / Schema Mismatch
-// , we explicitly set prices to decimal(18,4) to handle micro-cents.
+                        //  Precision Truncation / Schema Mismatch
+                        // , we explicitly set prices to decimal(18,4) to handle micro-cents.
                         // But the seeder ruined this by calling Math.Round(price, 2)! 
                         // We MUST generate 4-decimal values so the UI can properly test its frontend rounding logic.
                         // By default, C#'s Math.Round uses `MidpointRounding.ToEven`. 
@@ -180,7 +181,7 @@ namespace SalesPerf.Backend.Infrastructure.Data
                         SalePrice = Math.Round(price, 4, MidpointRounding.AwayFromZero)
                     });
                 }
-                
+
                 sales.Add(sale);
 
                 // Even with AutoDetectChanges off, EF Core caches all tracked entities in RAM until SaveChanges.
@@ -193,33 +194,33 @@ namespace SalesPerf.Backend.Infrastructure.Data
                     context.ChangeTracker.Clear();
                     sales.Clear();
                 }
-        }
+            }
 
             if (sales.Any())
             {
                 context.Sales.AddRange(sales);
-                
-                try 
-{
+
+                try
+                {
                     // Execute the final bulk transaction
-            await context.SaveChangesAsync();
-                    
-// , but forgot to commit it! 
+                    await context.SaveChangesAsync();
+
+                    // , but forgot to commit it! 
                     // `using var transaction` automatically rolls back at the end of the method unless explicitly committed.
                     // Without this, the seeder would silently do all the work and then delete it all on exit!
                     await transaction.CommitAsync();
                 }
-        catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key value") == true || ex.InnerException?.Message.Contains("unique constraint") == true)
-{
+                catch (DbUpdateException ex) when (ex.InnerException?.Message.Contains("duplicate key value") == true || ex.InnerException?.Message.Contains("unique constraint") == true)
+                {
                     // Another pod beat us to the seed. Log and ignore gracefully (transaction will auto-rollback).
-            Console.WriteLine("Seed race condition detected. Assuming data is seeded by another instance.");
-        }
-        }
-            
+                    Console.WriteLine("Seed race condition detected. Assuming data is seeded by another instance.");
+                }
+            }
+
             // Restore AutoDetectChanges
-//             context.ChangeTracker.AutoDetectChangesEnabled = true;
-}
-}
+            //             context.ChangeTracker.AutoDetectChangesEnabled = true;
+        }
+    }
 }
 
 

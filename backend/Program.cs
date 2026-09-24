@@ -63,7 +63,7 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
     {
         options.JsonSerializerOptions.ReferenceHandler = System.Text.Json.Serialization.ReferenceHandler.IgnoreCycles;
-        
+
         // ASP.NET serializes object properties as camelCase, but leaves Dictionary keys as-is!
         // If the backend returns a Dictionary<string, int>, frontend React code expecting camelCase keys will crash.
         options.JsonSerializerOptions.DictionaryKeyPolicy = System.Text.Json.JsonNamingPolicy.CamelCase;
@@ -94,7 +94,7 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddResponseCompression(options =>
 {
     options.EnableForHttps = true; // Essential for API compression
-        });
+});
 
 //  Ingress Asymmetry (Request Decompression)
 // We compress outgoing JSON, but if a mobile client tries to send GZipped JSON, Kestrel rejects it!
@@ -120,7 +120,7 @@ builder.Logging.AddJsonConsole();
 // Configure CORS
 // Hardcoding localhost origins will completely block the React frontend when deployed to production domains!
 // We MUST read allowed origins dynamically from appsettings.json to ensure CI/CD flexibility.
-var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>() 
+var allowedOrigins = builder.Configuration.GetSection("Cors:AllowedOrigins").Get<string[]>()
     ?? new[] { "http://localhost:3000", "http://localhost:5173" };
 
 builder.Services.AddCors(options =>
@@ -137,16 +137,18 @@ builder.Services.AddCors(options =>
 });
 
 // Configure EF Core with PostgreSQL
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection") 
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
 
-builder.Services.AddDbContextPool<SalesDbContext>(options => {
-    options.UseNpgsql(connectionString, npgsqlOptions => 
+builder.Services.AddDbContextPool<SalesDbContext>(options =>
+{
+    options.UseNpgsql(connectionString, npgsqlOptions =>
     {
         // npgsqlOptions.EnableRetryOnFailure(maxRetryCount: 3, maxRetryDelay: TimeSpan.FromSeconds(5), errorCodesToAdd: null);
         npgsqlOptions.UseQuerySplittingBehavior(QuerySplittingBehavior.SplitQuery);
     });
-    options.ConfigureWarnings(warnings => {
+    options.ConfigureWarnings(warnings =>
+    {
         warnings.Throw(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.MultipleCollectionIncludeWarning);
         warnings.Throw(Microsoft.EntityFrameworkCore.Diagnostics.CoreEventId.RowLimitingOperationWithoutOrderByWarning);
         warnings.Ignore(Microsoft.EntityFrameworkCore.Diagnostics.RelationalEventId.PendingModelChangesWarning);
@@ -157,7 +159,7 @@ builder.Services.AddDbContextPool<SalesDbContext>(options => {
 builder.Services.AddProblemDetails();
 
 // Protects the DB from being overwhelmed by scripts hitting the Analytics endpoint.
-builder.Services.AddRateLimiter(options => 
+builder.Services.AddRateLimiter(options =>
 {
     options.GlobalLimiter = System.Threading.RateLimiting.PartitionedRateLimiter.Create<HttpContext, string>(httpContext =>
         System.Threading.RateLimiting.RateLimitPartition.GetFixedWindowLimiter(
@@ -180,7 +182,7 @@ builder.Services.AddHealthChecks()
 // We MUST configure Forwarded Headers to read 'X-Forwarded-For' to get the real user IP.
 builder.Services.Configure<Microsoft.AspNetCore.Builder.ForwardedHeadersOptions>(options =>
 {
-    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor | 
+    options.ForwardedHeaders = Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedFor |
                                Microsoft.AspNetCore.HttpOverrides.ForwardedHeaders.XForwardedProto;
 });
 
@@ -240,10 +242,10 @@ if (app.Environment.IsDevelopment())
         try
         {
             var context = services.GetRequiredService<SalesDbContext>();
-            
+
             // Apply migrations
             await context.Database.MigrateAsync();
-            
+
             // Seed data
             await DataSeeder.SeedAsync(context);
         }
@@ -256,10 +258,11 @@ if (app.Environment.IsDevelopment())
             logger.LogCritical(ex, "FATAL: An error occurred while migrating or seeding the database.");
             throw;
         }
-        }
-        }
+    }
+}
 
-// app.Run();
+app.Run();
+
 
 
 

@@ -26,7 +26,7 @@ namespace SalesPerf.Backend.Infrastructure.Data
         {
             // Cap all unbounded strings to 255.
             configurationBuilder.Properties<string>().HaveMaxLength(255);
-            
+
             // I previously set the global precision to (18, 2). However, in ERP systems, 'CostPrice' 
             // for bulk goods (like screws or materials) often requires 4 decimal places (e.g., $0.0155 per unit).
             // If the database truncates this to $0.02, a sale of 100,000 units generates a $450 accounting error in COGS!
@@ -50,7 +50,7 @@ namespace SalesPerf.Backend.Infrastructure.Data
                     .HasDefaultValueSql("CURRENT_TIMESTAMP");
             }
 
-//  URL Truncation Exception
+            //  URL Truncation Exception
             // URLs and Enums are strictly ASCII. Storing them as NVARCHAR (UTF-16) wastes 2 bytes per character!
             // By declaring IsUnicode(false), we force the DB to use VARCHAR (ASCII), cutting storage bloat by 50%.
             modelBuilder.Entity<Manager>()
@@ -58,9 +58,9 @@ namespace SalesPerf.Backend.Infrastructure.Data
                 .HasMaxLength(2048)
                 .IsUnicode(false);
 
-//  Double-Negative Math Exploit Prevention
+            //  Double-Negative Math Exploit Prevention
             // We MUST use unquoted identifiers for cross-platform compatibility.
-//  Heap Fetch I/O Bottleneck (Covering Index)
+            //  Heap Fetch I/O Bottleneck (Covering Index)
             // External Data Analysts using Tableau/PowerBI will write raw SQL against this database.
             // If they don't know that 'SalePrice' is a UNIT price, they will SUM() it directly instead of multiplying by Quantity,
             // resulting in catastrophically wrong financial reports. We MUST embed SQL Comments into the schema metadata.
@@ -82,21 +82,21 @@ namespace SalesPerf.Backend.Infrastructure.Data
                 .IsUnicode(false) // Halves storage requirement
                 .IsConcurrencyToken();
 
-//  Time-Series Integrity / Garbage Data Prevention
+            //  Time-Series Integrity / Garbage Data Prevention
             // A bad bulk import could accidentally insert DateTimeOffset.MinValue (Year 0001).
             // This destroys time-series charts, expanding the X-axis by 2000 years.
             // We MUST enforce a physical minimum boundary on the Date column.
             var allowedStatuses = string.Join(", ", System.Enum.GetNames(typeof(SaleStatus)).Select(n => $"'{n}'"));
-            
-                
-//  Filtered Index Optimization (Partial Indexes)
+
+
+            //  Filtered Index Optimization (Partial Indexes)
             // In EF Core, an index is uniquely identified by its properties. If we call .HasIndex(s => s.Date) twice 
             // (once filtered, once unfiltered), EF Core silently merges them, dropping one of our configurations!
             // This would cause a catastrophic Full Table Scan for either Analytics or GetRecentSales.
             // We MUST explicitly name the indexes in the EF Model to force the creation of two distinct B-Trees.
             modelBuilder.Entity<Sale>().HasIndex(s => s.Date, "IX_Sales_Date_Paid")
                 ; // Turbo-charges GetChartData & GetKpis
-            
+
             modelBuilder.Entity<Sale>().HasIndex(s => new { s.ManagerId, s.Date })
                 ; // Turbo-charges GetManagersRating
 

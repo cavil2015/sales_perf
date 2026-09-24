@@ -11,18 +11,18 @@ namespace SalesPerf.Backend.Domain.Entities
     public sealed class Product : IComparable<Product>, IEquatable<Product>, ISpanFormattable
     {
         private readonly int _id;
-        public int Id 
-        { 
-            get => _id; 
+        public int Id
+        {
+            get => _id;
             init => _id = value >= 0 ? value : throw new ArgumentException("Entity ID cannot be negative.");
         }
 
         private static string SanitizeString(string input, int maxLength)
         {
             if (string.IsNullOrWhiteSpace(input)) return string.Empty;
-            if (input.Length > maxLength * 2) 
+            if (input.Length > maxLength * 2)
                 throw new ArgumentException($"Payload DoS Protection: Input exceeds max bounds.");
-            
+
             Span<char> buffer = stackalloc char[input.Length];
             int pos = 0;
             foreach (char c in input)
@@ -30,20 +30,20 @@ namespace SalesPerf.Backend.Domain.Entities
                 if (c is not ('\r' or '\n' or '\u202E' or '\u202D' or '\u202C' or '\0'))
                     buffer[pos++] = c;
             }
-            
+
             string normalized = new string(buffer[..pos]).Trim().Normalize(System.Text.NormalizationForm.FormC);
             if (normalized.Length > maxLength)
                 throw new ArgumentException($"Payload DoS Protection: Normalized input exceeds {maxLength} chars.");
-                
+
             return normalized;
         }
 
         private readonly string _name = null!;
         [MaxLength(100)]
-        public required string Name 
-        { 
-            get => _name; 
-            init 
+        public required string Name
+        {
+            get => _name;
+            init
             {
                 string sanitized = SanitizeString(value, 100);
                 if (sanitized.Length == 0) throw new ArgumentException("Name cannot be empty.");
@@ -57,7 +57,7 @@ namespace SalesPerf.Backend.Domain.Entities
         // We MUST encapsulate the relationship so you can only set the ID (scalar tracking), 
         // and let EF Core exclusively manage the navigation object.
         private readonly int _categoryId;
-        public required int CategoryId 
+        public required int CategoryId
         {
             get => _categoryId;
             init => _categoryId = value > 0 ? value : throw new ArgumentException("CategoryId must be valid.");
@@ -67,7 +67,7 @@ namespace SalesPerf.Backend.Domain.Entities
         public Category? Category { get; private set; } // Read-only for developers. EF Core can map to it natively.
 
         [Timestamp]
-        
+
         public uint Version { get; set; }
 
         private readonly HashSet<SaleItem> _saleItems = new();
@@ -85,7 +85,7 @@ namespace SalesPerf.Backend.Domain.Entities
         public override bool Equals(object? obj) => Equals(obj as Product);
 
         private int? _cachedHashCode;
-        public override int GetHashCode() 
+        public override int GetHashCode()
         {
             if (_cachedHashCode.HasValue) return _cachedHashCode.Value;
             _cachedHashCode = (Id == 0) ? base.GetHashCode() : HashCode.Combine(typeof(Product), Id);
