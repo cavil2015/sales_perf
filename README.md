@@ -62,3 +62,22 @@ The modern React/Vite dashboard will start on http://localhost:5173. It is confi
 This solution was crafted with a deep focus on long-term maintainability. Portions of the boilerplate and structural scaffolding were accelerated using Cursor IDE with Claude 4.5 Sonnet, allowing me to focus my engineering effort purely on domain logic, query optimization, and architectural integrity.
 
 
+
+### Business Rules (Легенда)
+- **Revenue**: Calculated as SalePrice * Quantity. Excludes Refunded and Cancelled orders.
+- **Gross Profit**: Calculated as (SalePrice - CostPrice) * Quantity. Excludes Refunded and Cancelled orders.
+- **Statuses**: Refunded and Cancelled are completely excluded from Revenue and Profit calculations, but remain in the database for historical record.
+- **Previous Period Comparison**: Metrics are compared against the exact same duration immediately preceding the selected date range. For example, if "Last 30 Days" is selected, the previous period is the 30 days before that.
+
+### Что не успели за 8 часов
+- Интеграционные тесты (E2E) с поднятием реальной БД через Testcontainers. Написаны только Unit-тесты.
+- Логирование действий пользователя (Audit Trails) и расширенный мониторинг через OpenTelemetry/Prometheus.
+- Продвинутая фильтрация (например, выбор конкретных категорий товаров на дашборде).
+- Пагинация для таблицы последних продаж (выводится только топ-50 последних записей для производительности).
+
+### Что улучшили бы дальше в production
+- **Кеширование**: Внедрение Redis для кеширования тяжелых аналитических запросов с инвалидацией при добавлении новых продаж.
+- **Асинхронные очереди**: Обработка поступающих продаж через RabbitMQ/Kafka для сглаживания нагрузки (load leveling).
+- **CQRS**: Полное разделение моделей на запись (Write Model) и чтение (Read Model - Materialized Views в PostgreSQL).
+- **CI/CD Pipeline**: Настроить GitHub Actions для автоматической сборки, тестирования и деплоя.
+- **Авторизация**: Добавление JWT/OAuth2 для защиты API.
