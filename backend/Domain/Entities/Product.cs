@@ -4,9 +4,6 @@ using System.Text.Json.Serialization;
 
 namespace SalesPerf.Backend.Domain.Entities
 {
-    // Product.cs Iterations 1-35: The Master Template
-    // Applied all 35 previous Enterprise-grade protections from Category/Customer/Manager:
-    // Memory allocation (Span), Bidi Unicode, SSRF, HashCode Mutation, StackOverflow bounds, etc.
     [DebuggerDisplay("Product(Id={Id:D}, Name={Name}, CategoryId={CategoryId:D})")]
     public sealed class Product : IComparable<Product>, IEquatable<Product>, ISpanFormattable
     {

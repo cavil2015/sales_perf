@@ -6,8 +6,6 @@ using System.Text.Json.Serialization;
 
 namespace SalesPerf.Backend.Domain.Entities
 {
-    // SaleItem.cs Iterations 1-42: The Master Template
-    // Applied all 42 previous protections (Span formatting, Split-Brain encapsulation, etc.)
     [DebuggerDisplay("SaleItem(Id={Id:D}, SaleId={SaleId:D}, ProductId={ProductId:D}, Qty={Quantity})")]
     public sealed class SaleItem : IComparable<SaleItem>, IEquatable<SaleItem>, ISpanFormattable
     {

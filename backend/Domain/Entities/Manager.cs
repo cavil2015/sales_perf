@@ -3,10 +3,6 @@ using System.Diagnostics;
 
 namespace SalesPerf.Backend.Domain.Entities
 {
-    // Manager.cs Iterations 1-18: Core DDD & EF Core Protections
-    // Applied Immutable Keys, HashSet O(1) relationships, IReadOnlyCollection encapsulation,
-    // [MaxLength] indexing safety, Transient Equality fixes, Operator overloads, DebuggerDisplay,
-    // and PostgreSQL Case-Sensitivity Leak fixes for `TeamOrRole` via Canonical Dictionary.
     [DebuggerDisplay("Manager(Id={Id}, Name={Name}, Team={TeamOrRole}, Active={IsActive})")]
     public sealed class Manager : IComparable<Manager>, IEquatable<Manager>
     {

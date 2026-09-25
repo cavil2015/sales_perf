@@ -13,7 +13,6 @@ namespace SalesPerf.Backend.Domain.Entities
         Refunded
     }
 
-    // Sale.cs Iterations 1-36: The Master Template
     [DebuggerDisplay("Sale(Id={Id:D}, Status={Status}, Date={Date})")]
     public sealed class Sale : IComparable<Sale>, IEquatable<Sale>, ISpanFormattable
     {

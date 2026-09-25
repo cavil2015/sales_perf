@@ -7,13 +7,6 @@ using System.Diagnostics;
 
 namespace SalesPerf.Backend.Domain.Entities
 {
-    // Customer.cs Iterations 1-5: The Core Domain Hardening
-    // Applying the same foundational EF Core and DDD protections we discovered in Category.cs:
-    // 1. Immutable Keys (Init properties to prevent accidental mutation).
-    // 2. Unbounded String Bloat Prevention (MaxLength attributes for B-Tree safety).
-    // 3. Whitespace Corruption Prevention (Backing fields with fail-fast validation).
-    // 4. O(N) Navigation Degradation Fix (HashSet instead of List).
-    // 5. Broken Encapsulation Fix (IReadOnlyCollection exposed).
     [DebuggerDisplay("Customer(Id={Id}, Name={Name}, Company={Company})")]
     public sealed class Customer : IComparable<Customer>, IEquatable<Customer>
     {
@@ -82,7 +75,6 @@ namespace SalesPerf.Backend.Domain.Entities
         private readonly HashSet<Sale> _sales = new();
         public IReadOnlyCollection<Sale> Sales => _sales;
 
-        // Customer.cs Iterations 6-12: The Advanced Equality & Performance Optimizations
         public bool Equals(Customer? other)
         {
             if (other is null) return false;

@@ -12,7 +12,6 @@ using Xunit;
 
 namespace SalesPerf.Backend.Tests
 {
-    //     AnalyticsTests.cs Iterations 49-52: The Master Test Suite
     public class AnalyticsTests : IDisposable
     {
         private readonly SalesDbContext _context;
