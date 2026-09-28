@@ -57,4 +57,3 @@ This backend was built strictly adhering to Clean Architecture principles. The a
 * Senior Software Engineer & System Architect (15+ лет коммерческой разработки)
 * Кандидат наук (ПМИС, ОГУ им. И.С. Тургенева, 2011)
 * **Telegram:** **@nikolay_fokin**
-* **Локация:** Орел, РФ
