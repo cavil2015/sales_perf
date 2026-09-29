@@ -1,4 +1,6 @@
-import { useState } from "react";
+﻿import { useState } from "react";
+import { ChartDataDto } from "../hooks/useAnalyticsDashboard";
+import { formatCurrency, safeFormatDate } from "../utils/formatters";
 import {
   BarChart,
   Bar,
@@ -8,8 +10,6 @@ import {
   Tooltip,
   ResponsiveContainer,
 } from "recharts";
-import { ChartDataDto } from "../hooks/useAnalyticsDashboard";
-import { formatCurrency, safeFormatDate } from "../utils/formatters";
 
 interface SalesChartProps {
   chartData: ChartDataDto[] | null;
@@ -23,9 +23,9 @@ export function SalesChart({ chartData, loading }: SalesChartProps) {
 
   const getMetricConfig = () => {
     switch (metric) {
-      case 'revenue': return { key: 'revenue', color: '#3b82f6', label: 'Revenue' };
-      case 'grossProfit': return { key: 'grossProfit', color: '#10b981', label: 'Gross Profit' };
-      case 'salesCount': return { key: 'salesCount', color: '#8b5cf6', label: 'Sales Count' };
+      case 'grossProfit': return { key: 'grossProfit', color: '#10b981', label: 'Profit' };
+      case 'salesCount': return { key: 'salesCount', color: '#f59e0b', label: 'Sales' };
+      default: return { key: 'revenue', color: '#3b82f6', label: 'Revenue' };
     }
   };
 
@@ -60,7 +60,7 @@ export function SalesChart({ chartData, loading }: SalesChartProps) {
           </button>
           <button
             onClick={() => setMetric('salesCount')}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${metric === 'salesCount' ? 'bg-white shadow-sm text-purple-600' : 'text-slate-600 hover:text-slate-900'}`}
+            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-colors ${metric === 'salesCount' ? 'bg-white shadow-sm text-amber-600' : 'text-slate-600 hover:text-slate-900'}`}
           >
             Sales
           </button>
@@ -68,16 +68,16 @@ export function SalesChart({ chartData, loading }: SalesChartProps) {
       </div>
 
       {loading && chartData === null ? (
-        <div className="h-full w-full flex items-center justify-center text-gray-400">
+        <div className="flex-1 flex items-center justify-center text-gray-400">
           Loading chart...
         </div>
       ) : chartData === null ? (
-        <div className="h-full w-full flex items-center justify-center text-red-400">
+        <div className="flex-1 flex items-center justify-center text-red-400">
           Failed to load chart
         </div>
       ) : chartData.length === 0 ? (
-        <div className="h-full w-full flex items-center justify-center text-slate-400">
-          No sales in this period
+        <div className="flex-1 flex items-center justify-center text-slate-400">
+          No data available
         </div>
       ) : (
         <div className="flex-1 min-h-[300px]">
@@ -98,11 +98,10 @@ export function SalesChart({ chartData, loading }: SalesChartProps) {
                 tickFormatter={formatAxis}
               />
               <Tooltip
-                cursor={{ fill: "#f8fafc" }}
+                cursor={{ fill: "#f1f5f9" }}
+                contentStyle={{ borderRadius: "8px", border: "none", boxShadow: "0 4px 6px -1px rgb(0 0 0 / 0.1)" }}
+                labelFormatter={(l) => safeFormatDate(l as string, "MMM d, yyyy")}
                 formatter={formatValue}
-                labelFormatter={(l) =>
-                  safeFormatDate(l as string, "MMM d, yyyy")
-                }
               />
               <Bar dataKey={config.key} fill={config.color} radius={[4, 4, 0, 0]} />
             </BarChart>
@@ -112,3 +111,4 @@ export function SalesChart({ chartData, loading }: SalesChartProps) {
     </div>
   );
 }
+

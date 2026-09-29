@@ -1,4 +1,4 @@
-import { useState } from "react";
+﻿import { useState } from "react";
 import { CategoryAnalyticsDto, TopProductDto } from "../hooks/useAnalyticsDashboard";
 import { formatCurrency, formatNumber } from "../utils/formatters";
 import { PieChart, Pie, Cell, Tooltip, ResponsiveContainer } from "recharts";
@@ -43,7 +43,7 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
         ) : categories === null ? (
           <div className="flex-1 flex items-center justify-center text-red-400">Error loading categories</div>
         ) : categories.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-slate-400">No data</div>
+          <div className="flex-1 flex items-center justify-center text-slate-400">No data available</div>
         ) : (
           <div className="flex-1 min-h-[250px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -81,7 +81,7 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
         ) : topProducts === null ? (
           <div className="text-red-400 text-sm mt-4">Failed to load top products</div>
         ) : topProducts.length === 0 ? (
-          <div className="text-slate-400 text-sm mt-4">No products active</div>
+          <div className="flex-1 flex items-center justify-center text-slate-400">No data available</div>
         ) : (
           <div className="space-y-3 overflow-y-auto">
             {topProducts.map((p, idx) => (
@@ -90,7 +90,7 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
                   <span className="text-sm font-bold text-slate-400 w-4">{idx + 1}</span>
                   <div className="min-w-0">
                     <p className="font-medium text-sm text-slate-900 truncate" title={p.productName}>{p.productName}</p>
-                    <p className="text-xs text-slate-500">{p.categoryName} • {p.salesCount} sold</p>
+                    <p className="text-xs text-slate-500">{p.categoryName} â€¢ {p.salesCount} sold</p>
                   </div>
                 </div>
                 <div className="text-right shrink-0">
@@ -104,3 +104,4 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
     </div>
   );
 }
+

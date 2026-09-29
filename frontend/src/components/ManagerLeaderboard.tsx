@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { ManagerRatingDto } from "../hooks/useAnalyticsDashboard";
 import { formatCurrency, formatPercent } from "../utils/formatters";
 
@@ -47,7 +47,7 @@ export function ManagerLeaderboard({
       ) : managers === null ? (
         <div className="text-red-400 text-sm mt-4">Failed to load managers</div>
       ) : managers.length === 0 ? (
-        <div className="text-slate-400 text-sm mt-4">No managers active</div>
+        <div className="flex-1 flex items-center justify-center text-slate-400">No data available</div>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse min-w-[900px]">
@@ -98,10 +98,10 @@ export function ManagerLeaderboard({
                     <td className="py-3 pl-4 text-right">
                       {diff !== 0 ? (
                         <span className={`inline-flex items-center gap-1 font-bold ${diff > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                          {diff > 0 ? "↑" : "↓"} {formatPercent(Math.abs(diff))}
+                          {diff > 0 ? "â†‘" : "â†“"} {formatPercent(Math.abs(diff))}
                         </span>
                       ) : (
-                        <span className="text-slate-400">–</span>
+                        <span className="text-slate-400">â€“</span>
                       )}
                     </td>
                   </tr>
@@ -114,3 +114,4 @@ export function ManagerLeaderboard({
     </div>
   );
 }
+
