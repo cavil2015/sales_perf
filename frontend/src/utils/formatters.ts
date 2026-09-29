@@ -27,3 +27,8 @@ export const formatPercent = (val: number | string | undefined | null) => {
     maximumFractionDigits: 1,
   }).format(Number(val));
 };
+
+export const formatNumber = (val: number | string | undefined | null) => {
+  if (val === null || val === undefined) return "0";
+  return new Intl.NumberFormat("en-US").format(Number(val));
+};
