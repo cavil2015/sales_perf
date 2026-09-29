@@ -1,4 +1,4 @@
-import { format } from "date-fns";
+﻿import { format } from "date-fns";
 
 export const safeFormatDate = (dateStr: string, formatStr: string) => {
   if (!dateStr) return "";
@@ -16,5 +16,14 @@ export const formatCurrency = (val: number | string | undefined | null) => {
     currency: "USD",
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
+  }).format(Number(val));
+};
+
+export const formatPercent = (val: number | string | undefined | null) => {
+  if (val === null || val === undefined) return "0%";
+  return new Intl.NumberFormat("en-US", {
+    style: "percent",
+    minimumFractionDigits: 1,
+    maximumFractionDigits: 1,
   }).format(Number(val));
 };

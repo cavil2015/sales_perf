@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Text.Json.Serialization;
 
 namespace SalesPerf.Backend.Application.DTOs
@@ -39,4 +39,19 @@ namespace SalesPerf.Backend.Application.DTOs
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Revenue,
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfit
     );
+    public record CategoryAnalyticsDto(
+        string CategoryName,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Revenue,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfit,
+        int SalesCount
+    );
+
+    public record TopProductDto(
+        int ProductId,
+        string ProductName,
+        string CategoryName,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Revenue,
+        int SalesCount
+    );
 }
+

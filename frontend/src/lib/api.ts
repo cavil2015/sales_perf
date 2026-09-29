@@ -1,4 +1,4 @@
-// Vite Build-Time Env Lock-in
+﻿// Vite Build-Time Env Lock-in
 // Vite statically replaces `import.meta.env` during build. If we deploy a Docker container
 // and try to pass `-e VITE_API_URL=...` at runtime, it will be completely ignored!
 // To support 12-Factor App methodology (configure once, deploy anywhere), we MUST check
@@ -186,3 +186,17 @@ export const fetchRecentSales = async (signal?: AbortSignal) => {
   });
   return handleResponse(res, "Failed to fetch recent sales");
 };
+
+export async function fetchCategoryAnalytics(from?: string, to?: string, signal?: AbortSignal) {
+  const params = new URLSearchParams();
+  if (from) params.append("from", from);
+  if (to) params.append("to", to);
+  const qs = params.toString();
+  const url = qs ? '/api/analytics/categories?' + qs : '/api/analytics/categories';
+  
+  const res = await fetch(API_URL + url, { signal });
+  if (!res.ok) throw new Error("Failed to fetch category analytics");
+  return res.json();
+}
+
+

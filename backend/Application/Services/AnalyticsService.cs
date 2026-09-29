@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -288,8 +288,57 @@ namespace SalesPerf.Backend.Application.Services
 
             return (startDate, endDate);
         }
+
+        public async Task<(List<CategoryAnalyticsDto> Categories, List<TopProductDto> TopProducts)> GetCategoryAnalyticsAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken = default)
+        {
+            var query = _context.Sales
+                .AsNoTracking()
+                .Where(s => s.Status != SalesPerf.Backend.Domain.Entities.SaleStatus.Cancelled && s.Status != SalesPerf.Backend.Domain.Entities.SaleStatus.Refunded);
+
+            if (from.HasValue) query = query.Where(s => s.Date >= from.Value);
+            if (to.HasValue) query = query.Where(s => s.Date <= to.Value);
+
+            var items = await query
+                .SelectMany(s => s.Items)
+                .Select(i => new {
+                    CategoryName = i.Product.Category.Name,
+                    ProductId = i.ProductId,
+                    ProductName = i.Product.Name,
+                    Revenue = i.SalePrice * i.Quantity,
+                    GrossProfit = (i.SalePrice - i.CostPrice) * i.Quantity,
+                    Quantity = i.Quantity
+                })
+                .ToListAsync(cancellationToken);
+
+            var categories = items
+                .GroupBy(i => i.CategoryName)
+                .Select(g => new CategoryAnalyticsDto(
+                    g.Key,
+                    g.Sum(x => x.Revenue),
+                    g.Sum(x => x.GrossProfit),
+                    g.Sum(x => x.Quantity)
+                ))
+                .OrderByDescending(c => c.Revenue)
+                .ToList();
+
+            var topProducts = items
+                .GroupBy(i => new { i.ProductId, i.ProductName, i.CategoryName })
+                .Select(g => new TopProductDto(
+                    g.Key.ProductId,
+                    g.Key.ProductName,
+                    g.Key.CategoryName,
+                    g.Sum(x => x.Revenue),
+                    g.Sum(x => x.Quantity)
+                ))
+                .OrderByDescending(p => p.Revenue)
+                .Take(5)
+                .ToList();
+
+            return (categories, topProducts);
+        }
     }
 }
+
 
 
 

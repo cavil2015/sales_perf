@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
@@ -50,5 +50,13 @@ namespace SalesPerf.Backend.Controllers
             var result = await _analyticsService.GetRecentSalesAsync(limit, cancellationToken);
             return Ok(result);
         }
+        [HttpGet("categories")]
+        [ProducesResponseType(StatusCodes.Status200OK)]
+        public async Task<ActionResult<object>> GetCategoryAnalytics([FromQuery] DateTimeOffset? from, [FromQuery] DateTimeOffset? to, CancellationToken cancellationToken)
+        {
+            var result = await _analyticsService.GetCategoryAnalyticsAsync(from, to, cancellationToken);
+            return Ok(new { categories = result.Categories, topProducts = result.TopProducts });
+        }
     }
 }
+

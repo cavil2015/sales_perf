@@ -1,12 +1,11 @@
-import { useState, useEffect } from "react";
+﻿import { useState, useEffect } from "react";
 import {
   fetchKpis,
   fetchManagersRating,
   fetchChartData,
   fetchRecentSales,
+  fetchCategoryAnalytics
 } from "../lib/api";
-
-export type DateFilter = "30days" | "month" | "12months";
 
 export interface KpiDto {
   revenue: number | string;
@@ -23,6 +22,8 @@ export interface ManagerRatingDto {
   revenue: number | string;
   grossProfit: number | string;
   salesCount: number;
+  averageCheck: number | string;
+  margin: number | string;
 }
 
 export interface ChartDataDto {
@@ -42,7 +43,22 @@ export interface RecentSaleDto {
   grossProfit: number | string;
 }
 
-export function useAnalyticsDashboard(dateRange: DateFilter) {
+export interface CategoryAnalyticsDto {
+  categoryName: string;
+  revenue: number | string;
+  grossProfit: number | string;
+  salesCount: number;
+}
+
+export interface TopProductDto {
+  productId: number;
+  productName: string;
+  categoryName: string;
+  revenue: number | string;
+  salesCount: number;
+}
+
+export function useAnalyticsDashboard(from?: string, to?: string) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -50,6 +66,7 @@ export function useAnalyticsDashboard(dateRange: DateFilter) {
   const [managers, setManagers] = useState<ManagerRatingDto[] | null>(null);
   const [chartData, setChartData] = useState<ChartDataDto[] | null>(null);
   const [recentSales, setRecentSales] = useState<RecentSaleDto[] | null>(null);
+  const [categoryData, setCategoryData] = useState<{ categories: CategoryAnalyticsDto[], topProducts: TopProductDto[] } | null>(null);
 
   useEffect(() => {
     let isMounted = true;
@@ -60,39 +77,12 @@ export function useAnalyticsDashboard(dateRange: DateFilter) {
         setLoading(true);
         setError(null);
 
-        let from: string | undefined;
-        const now = new Date();
-
-        if (dateRange === "30days") {
-          const d = new Date(
-            Date.UTC(
-              now.getUTCFullYear(),
-              now.getUTCMonth(),
-              now.getUTCDate() - 30,
-            ),
-          );
-          from = d.toISOString();
-        } else if (dateRange === "month") {
-          const d = new Date(
-            Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1),
-          );
-          from = d.toISOString();
-        } else if (dateRange === "12months") {
-          const d = new Date(
-            Date.UTC(
-              now.getUTCFullYear() - 1,
-              now.getUTCMonth(),
-              now.getUTCDate(),
-            ),
-          );
-          from = d.toISOString();
-        }
-
         const results = await Promise.allSettled([
-          fetchKpis(from, undefined, abortController.signal),
-          fetchManagersRating(from, undefined, abortController.signal),
-          fetchChartData(from, undefined, abortController.signal),
+          fetchKpis(from, to, abortController.signal),
+          fetchManagersRating(from, to, abortController.signal),
+          fetchChartData(from, to, abortController.signal),
           fetchRecentSales(abortController.signal),
+          fetchCategoryAnalytics(from, to, abortController.signal)
         ]);
 
         if (!isMounted) return;
@@ -108,6 +98,9 @@ export function useAnalyticsDashboard(dateRange: DateFilter) {
 
         if (results[3].status === "fulfilled") setRecentSales(results[3].value);
         else setRecentSales(null);
+
+        if (results[4].status === "fulfilled") setCategoryData(results[4].value);
+        else setCategoryData(null);
 
         if (results.every((r) => r.status === "rejected")) {
           throw new Error("Dashboard API is offline.");
@@ -125,7 +118,7 @@ export function useAnalyticsDashboard(dateRange: DateFilter) {
       isMounted = false;
       abortController.abort();
     };
-  }, [dateRange]);
+  }, [from, to]);
 
-  return { loading, error, kpis, managers, chartData, recentSales };
+  return { loading, error, kpis, managers, chartData, recentSales, categoryData };
 }
