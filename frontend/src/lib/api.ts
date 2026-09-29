@@ -187,16 +187,20 @@ export const fetchRecentSales = async (signal?: AbortSignal) => {
   return handleResponse(res, "Failed to fetch recent sales");
 };
 
-export async function fetchCategoryAnalytics(from?: string, to?: string, signal?: AbortSignal) {
-  const params = new URLSearchParams();
-  if (from) params.append("from", from);
-  if (to) params.append("to", to);
-  const qs = params.toString();
-  const url = qs ? '/api/analytics/categories?' + qs : '/api/analytics/categories';
-  
-  const res = await fetch(API_URL + url, { signal });
-  if (!res.ok) throw new Error("Failed to fetch category analytics");
-  return res.json();
+export async function fetchCategoryAnalytics(
+  from?: string,
+  to?: string,
+  signal?: AbortSignal,
+) {
+  const res = await fetchWithRetry(buildUrl("/analytics/categories", from, to), {
+    signal,
+    credentials: "include",
+    headers: {
+      Accept: "application/json",
+      "Cache-Control": "no-cache, no-store, must-revalidate",
+      Pragma: "no-cache",
+    },
+  });
+  return handleResponse(res, "Failed to fetch category analytics");
 }
-
 
