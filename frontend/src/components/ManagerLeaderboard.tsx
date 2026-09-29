@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { ManagerRatingDto } from "../hooks/useAnalyticsDashboard";
 import { formatCurrency, formatPercent } from "../utils/formatters";
 
@@ -98,10 +98,10 @@ export function ManagerLeaderboard({
                     <td className="py-3 pl-4 text-right">
                       {diff !== 0 ? (
                         <span className={`inline-flex items-center gap-1 font-bold ${diff > 0 ? "text-emerald-500" : "text-red-500"}`}>
-                          {diff > 0 ? "â†‘" : "â†“"} {formatPercent(Math.abs(diff))}
+                          {diff > 0 ? "\u2191" : "\u2193"} {formatPercent(Math.abs(diff))}
                         </span>
                       ) : (
-                        <span className="text-slate-400">â€“</span>
+                        <span className="text-slate-400">-</span>
                       )}
                     </td>
                   </tr>
@@ -114,4 +114,3 @@ export function ManagerLeaderboard({
     </div>
   );
 }
-

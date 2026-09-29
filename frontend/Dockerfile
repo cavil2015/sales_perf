@@ -1,4 +1,4 @@
-FROM nginx:alpine
+﻿FROM nginx:alpine
 COPY dist /usr/share/nginx/html
 
 # SPA configuration for nginx

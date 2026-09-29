@@ -100,13 +100,27 @@ export function useAnalyticsDashboard(from?: string, to?: string) {
         if (results[1].status === "fulfilled") setManagers(results[1].value);
         else setManagers(null);
 
-        if (results[2].status === "fulfilled") setChartData(results[2].value);
-        else setChartData(null);
+        if (results[2].status === "fulfilled") {
+          // Recharts fails if values are strings. Parse them to numbers.
+          const data = results[2].value.map((d: any) => ({
+            ...d,
+            revenue: Number(d.revenue),
+            grossProfit: Number(d.grossProfit)
+          }));
+          setChartData(data);
+        } else setChartData(null);
 
         if (results[3].status === "fulfilled") setRecentSales(results[3].value);
         else setRecentSales(null);
 
-        if (results[4].status === "fulfilled") setCategoryData(results[4].value);
+        if (results[4].status === "fulfilled") {
+          // Also parse categories and top products just in case Recharts Pie needs it
+          const data = results[4].value;
+          setCategoryData({
+            categories: data.categories.map((c: any) => ({ ...c, revenue: Number(c.revenue), grossProfit: Number(c.grossProfit) })),
+            topProducts: data.topProducts.map((p: any) => ({ ...p, revenue: Number(p.revenue) }))
+          });
+        }
         else setCategoryData(null);
 
         if (results.every((r) => r.status === "rejected")) {
@@ -129,4 +143,3 @@ export function useAnalyticsDashboard(from?: string, to?: string) {
 
   return { loading, error, kpis, managers, chartData, recentSales, categoryData };
 }
-
