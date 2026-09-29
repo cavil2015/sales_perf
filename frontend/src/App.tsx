@@ -1,4 +1,4 @@
-﻿import { useState, useMemo } from "react";
+import { useState, useMemo } from "react";
 import { useAnalyticsDashboard } from "./hooks/useAnalyticsDashboard";
 import { KpiGrid } from "./components/KpiGrid";
 import { SalesChart } from "./components/SalesChart";
@@ -115,10 +115,9 @@ export default function App() {
       <main className="max-w-7xl mx-auto space-y-6">
         <KpiGrid kpis={kpis} loading={loading} />
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <SalesChart chartData={chartData} loading={loading} />
-          <ManagerLeaderboard managers={managers} loading={loading} />
-        </div>
+        <SalesChart chartData={chartData} loading={loading} />
+        
+        <ManagerLeaderboard managers={managers} loading={loading} />
 
         <CategoryAnalytics 
           categories={categoryData?.categories || null} 
