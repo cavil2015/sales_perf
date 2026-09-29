@@ -22,136 +22,138 @@ namespace SalesPerf.Backend.Application.Services
 
 
 
-        public async Task<KpiResponseDto> GetKpisAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
+                public async Task<KpiResponseDto> GetKpisAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken = default)
         {
             var (startDate, endDate) = GetDateRange(from, to);
+            
+            // Previous period calculation
+            var duration = endDate - startDate;
+            var prevStartDate = startDate - duration;
+            var prevEndDate = startDate;
 
-            var salesQuery = _context.Sales
-                //                 .AsNoTracking()
-                //  Exclusive upper bounds (< endDate). Prevents fractional second rounding leaks in PostgreSQL/SQL Server.
-                .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid);
-
-            //  (Bulletproof): EF Core often crashes on nested Sum() inside GroupBy. 
-            // We split into Count (Query 1) and SelectMany Aggregates (Query 2).
-            var salesCount = await salesQuery.CountAsync(cancellationToken);
-
-            if (salesCount == 0)
-                return new KpiResponseDto(0, 0, 0, 0, 0, null);
-
-            var itemAggs = await salesQuery
-                .SelectMany(s => s.Items)
-                .GroupBy(x => 1)
-                .Select(g => new
+            // Fetch current period
+            var currentSales = await _context.Sales
+                .AsNoTracking()
+                .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SalesPerf.Backend.Domain.Entities.SaleStatus.Paid)
+                .Select(s => new
                 {
-                    TotalRevenue = g.Sum(i => i.SalePrice * i.Quantity),
-                    TotalCost = g.Sum(i => i.CostPrice * i.Quantity)
+                    s.ManagerId,
+                    s.Manager.Name,
+                    Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
+                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
                 })
-                .FirstOrDefaultAsync(cancellationToken);
+                .ToListAsync(cancellationToken);
 
-            var totalRev = itemAggs?.TotalRevenue ?? 0;
-            var totalCost = itemAggs?.TotalCost ?? 0;
-            var grossProfit = totalRev - totalCost;
-            var margin = totalRev != 0 ? grossProfit / totalRev : 0;
-            var averageCheck = salesCount != 0 ? totalRev / salesCount : 0;
+            // Fetch previous period
+            var prevSales = await _context.Sales
+                .AsNoTracking()
+                .Where(s => s.Date >= prevStartDate && s.Date < prevEndDate && s.Status == SalesPerf.Backend.Domain.Entities.SaleStatus.Paid)
+                .Select(s => new
+                {
+                    Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
+                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
+                })
+                .ToListAsync(cancellationToken);
 
-            var topManagerName = await salesQuery
-                            //  Nested Sum Translation Crash!
-                            // GroupBy followed by a nested g.Sum(x => x.Items.Sum(...)) cannot be translated by EF Core to SQL.
-                            // It throws InvalidOperationException. We MUST flatten it with SelectMany just like we did in GetManagersRating.
-                            .SelectMany(s => s.Items, (s, i) => new { s.ManagerId, s.Manager.Name, i.SalePrice, i.Quantity })
-                            .GroupBy(x => new { x.ManagerId, x.Name })
-                            .Select(g => new { ManagerId = g.Key.ManagerId, ManagerName = g.Key.Name, Revenue = g.Sum(x => x.SalePrice * x.Quantity) })
-                            .OrderByDescending(x => x.Revenue)
-                            .ThenBy(x => x.ManagerName)
-                            .ThenBy(x => x.ManagerId)
-                            .Select(x => x.ManagerName)
-                            .FirstOrDefaultAsync(cancellationToken);
+            var rev = currentSales.Sum(x => x.Revenue);
+            var cost = currentSales.Sum(x => x.Cost);
+            var count = currentSales.Count;
+            var gp = rev - cost;
+            var margin = rev == 0 ? 0 : gp / rev;
+            var avg = count == 0 ? 0 : rev / count;
+
+            var prevRev = prevSales.Sum(x => x.Revenue);
+            var prevCost = prevSales.Sum(x => x.Cost);
+            var prevCount = prevSales.Count;
+            var prevGp = prevRev - prevCost;
+            var prevAvg = prevCount == 0 ? 0 : prevRev / prevCount;
+
+            decimal CalcDiff(decimal current, decimal previous) => previous == 0 ? (current > 0 ? 1 : 0) : (current - previous) / previous;
+
+            var topManager = currentSales
+                .GroupBy(s => s.Name)
+                .OrderByDescending(g => g.Sum(x => x.Revenue))
+                .Select(g => g.Key)
+                .FirstOrDefault();
 
             return new KpiResponseDto(
-                totalRev,
-                grossProfit,
-                margin,
-                salesCount,
-                averageCheck,
-                topManagerName
+                rev, gp, margin, count, avg, topManager,
+                CalcDiff(rev, prevRev),
+                CalcDiff(gp, prevGp),
+                CalcDiff(count, prevCount),
+                CalcDiff(avg, prevAvg)
             );
         }
 
 
 
-        public async Task<List<ManagerRatingDto>> GetManagersRatingAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken)
+        public async Task<List<ManagerRatingDto>> GetManagersRatingAsync(DateTimeOffset? from, DateTimeOffset? to, CancellationToken cancellationToken = default)
         {
             var (startDate, endDate) = GetDateRange(from, to);
+            var duration = endDate - startDate;
+            var prevStartDate = startDate - duration;
+            var prevEndDate = startDate;
 
-            // Filtering solely by m.IsActive drops fired/inactive managers from the historical rating.
-            // But their sales still exist in the database and contribute to the global KPI TotalRevenue!
-            // We MUST include inactive managers IF they have any sales in the requested date range,
-            // otherwise the sum of the manager table won't match the global KPI revenue.
-            var allManagers = await _context.Managers
+            var currentSales = await _context.Sales
                 .AsNoTracking()
-                .Where(m => m.IsActive || m.Sales.Any(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid))
-                // Fetching full entities (SELECT *) pulls potentially large unused columns (like long Bio or binary data) into RAM.
-                // We MUST project only the exact columns needed for the DTO to future-proof against memory leaks.
-                .Select(m => new { m.Id, m.Name, m.AvatarUrl })
-                .ToListAsync(cancellationToken);
-
-            // 2. Fetch True Sales Count (avoids INNER JOIN drop of empty sales)
-            var salesCounts = await _context.Sales
-                //                 .AsNoTracking()
-                //  Exclusive upper bound
-                .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid)
-                .GroupBy(s => s.ManagerId)
-                .Select(g => new { ManagerId = g.Key, Count = g.Count() })
-                .ToListAsync(cancellationToken);
-
-            // 3. Fetch Revenue Aggregates via SelectMany
-            var aggregates = await _context.Sales
-                //                 .AsNoTracking()
-                //  Exclusive upper bound
-                .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SaleStatus.Paid)
-                .SelectMany(s => s.Items, (s, i) => new { s.ManagerId, i.SalePrice, i.CostPrice, i.Quantity })
-                .GroupBy(x => x.ManagerId)
-                .Select(g => new
+                .Where(s => s.Date >= startDate && s.Date < endDate && s.Status == SalesPerf.Backend.Domain.Entities.SaleStatus.Paid)
+                .Select(s => new
                 {
-                    ManagerId = g.Key,
-                    Revenue = g.Sum(x => x.SalePrice * x.Quantity),
-                    Cost = g.Sum(x => x.CostPrice * x.Quantity)
+                    s.ManagerId,
+                    s.Manager.Name,
+                    s.Manager.AvatarUrl,
+                    Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
+                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
                 })
                 .ToListAsync(cancellationToken);
 
-            // aggregates and salesCounts are lists. Using FirstOrDefault inside a loop over allManagers
-            // creates an O(N^2) Cartesian product. For 10,000 managers, this is 100,000,000 operations per request!
-            // We MUST use O(1) HashMaps (Dictionaries) to map the data safely.
-            var aggDict = aggregates.ToDictionary(a => a.ManagerId);
-            var scDict = salesCounts.ToDictionary(a => a.ManagerId);
+            var prevSales = await _context.Sales
+                .AsNoTracking()
+                .Where(s => s.Date >= prevStartDate && s.Date < prevEndDate && s.Status == SalesPerf.Backend.Domain.Entities.SaleStatus.Paid)
+                .Select(s => new
+                {
+                    s.ManagerId,
+                    Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
+                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
+                })
+                .ToListAsync(cancellationToken);
 
-            // 4. Zip in memory (Now strictly O(N))
-            var result = allManagers.Select(m =>
-            {
-                aggDict.TryGetValue(m.Id, out var agg);
-                scDict.TryGetValue(m.Id, out var sc);
+            var prevManagerStats = prevSales
+                .GroupBy(s => s.ManagerId)
+                .ToDictionary(g => g.Key, g => new {
+                    Rev = g.Sum(x => x.Revenue),
+                    Gp = g.Sum(x => x.Revenue - x.Cost),
+                    Avg = g.Count() == 0 ? 0 : g.Sum(x => x.Revenue) / g.Count()
+                });
 
-                var rev = agg?.Revenue ?? 0;
-                var cost = agg?.Cost ?? 0;
-                var count = sc?.Count ?? 0;
-                var gp = rev - cost;
+            decimal CalcDiff(decimal current, decimal previous) => previous == 0 ? (current > 0 ? 1 : 0) : (current - previous) / previous;
 
-                return new ManagerRatingDto(
-                    m.Id,
-                    m.Name,
-                    m.AvatarUrl,
-                    rev,
-                    gp,
-                    count,
-                    count != 0 ? rev / count : 0,
-                    rev != 0 ? gp / rev : 0
-                );
-            }).OrderByDescending(m => m.GrossProfit)
-              .ThenBy(m => m.ManagerName)
-              .ThenBy(m => m.ManagerId)
-              .ToList();
+            var managerStats = currentSales
+                .GroupBy(s => new { s.ManagerId, s.Name, s.AvatarUrl })
+                .Select(g => {
+                    var rev = g.Sum(x => x.Revenue);
+                    var cost = g.Sum(x => x.Cost);
+                    var count = g.Count();
+                    var gp = rev - cost;
+                    var margin = rev == 0 ? 0 : gp / rev;
+                    var avg = count == 0 ? 0 : rev / count;
+                    
+                    var prevRev = prevManagerStats.ContainsKey(g.Key.ManagerId) ? prevManagerStats[g.Key.ManagerId].Rev : 0;
+                    var prevGp = prevManagerStats.ContainsKey(g.Key.ManagerId) ? prevManagerStats[g.Key.ManagerId].Gp : 0;
+                    var prevAvg = prevManagerStats.ContainsKey(g.Key.ManagerId) ? prevManagerStats[g.Key.ManagerId].Avg : 0;
 
-            return result;
+                    return new ManagerRatingDto(
+                        g.Key.ManagerId,
+                        g.Key.Name ?? "Unknown",
+                        g.Key.AvatarUrl,
+                        rev, gp, count, avg, margin,
+                        CalcDiff(gp, prevGp),
+                        CalcDiff(avg, prevAvg)
+                    );
+                })
+                .ToList();
+
+            return managerStats;
         }
 
 
@@ -207,18 +209,13 @@ namespace SalesPerf.Backend.Application.Services
 
 
 
-        public async Task<List<RecentSaleDto>> GetRecentSalesAsync(int limit = 10, CancellationToken cancellationToken = default)
+                public async Task<List<RecentSaleDto>> GetRecentSalesAsync(int limit = 10, CancellationToken cancellationToken = default)
         {
             limit = Math.Clamp(limit, 1, 100);
 
-            //  Enum Translation Crash!
-            // Calling s.Status.ToString() inside an EF Core projection throws an InvalidOperationException 
-            // if the enum is stored as an integer (default), because SQL cannot natively cast int to the C# enum string.
-            // We MUST project the raw enum and do the .ToString() conversion in C# memory.
             var dbRecentSales = await _context.Sales
                 .AsNoTracking()
                 .OrderByDescending(s => s.Id)
-                .ThenByDescending(s => s.Id)
                 .Take(limit)
                 .Select(s => new
                 {
@@ -226,9 +223,10 @@ namespace SalesPerf.Backend.Application.Services
                     s.Date,
                     ManagerName = s.Manager.Name,
                     CustomerName = s.Customer.Name,
-                    s.Status, // Raw enum
+                    s.Status,
                     Revenue = s.Items.Sum(i => (decimal?)i.SalePrice * i.Quantity) ?? 0,
-                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0
+                    Cost = s.Items.Sum(i => (decimal?)i.CostPrice * i.Quantity) ?? 0,
+                    Products = s.Items.Select(i => i.Product.Name).ToList()
                 })
                 .ToListAsync(cancellationToken);
 
@@ -237,9 +235,10 @@ namespace SalesPerf.Backend.Application.Services
                 s.Date,
                 s.ManagerName ?? "Unknown",
                 s.CustomerName ?? "Unknown",
-                s.Status.ToString(), // Safe memory translation
+                s.Status.ToString(),
                 s.Revenue,
-                s.Revenue - s.Cost
+                s.Revenue - s.Cost,
+                string.Join(", ", s.Products)
             )).ToList();
 
             return recentSales;

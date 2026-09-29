@@ -9,7 +9,13 @@ namespace SalesPerf.Backend.Application.DTOs
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Margin,
         int SalesCount,
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal AverageCheck,
-        string? TopManager
+        string? TopManager,
+        
+        // Diff properties (percentage change)
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal RevenueDiff,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfitDiff,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal SalesCountDiff,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal AverageCheckDiff
     );
 
     public record ManagerRatingDto(
@@ -20,7 +26,10 @@ namespace SalesPerf.Backend.Application.DTOs
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfit,
         int SalesCount,
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal AverageCheck,
-        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Margin
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Margin,
+        
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfitDiff,
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal AverageCheckDiff
     );
 
     public record ChartDataDto(
@@ -37,8 +46,10 @@ namespace SalesPerf.Backend.Application.DTOs
         string CustomerName,
         string Status,
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Revenue,
-        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfit
+        [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal GrossProfit,
+        string Products
     );
+
     public record CategoryAnalyticsDto(
         string CategoryName,
         [property: JsonNumberHandling(JsonNumberHandling.WriteAsString)] decimal Revenue,
@@ -54,4 +65,3 @@ namespace SalesPerf.Backend.Application.DTOs
         int SalesCount
     );
 }
-

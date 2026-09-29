@@ -13,6 +13,10 @@ export interface KpiDto {
   salesCount: number;
   averageCheck: number | string;
   topManager: string | null;
+  revenueDiff?: number | string;
+  grossProfitDiff?: number | string;
+  salesCountDiff?: number | string;
+  averageCheckDiff?: number | string;
 }
 
 export interface ManagerRatingDto {
@@ -24,6 +28,8 @@ export interface ManagerRatingDto {
   salesCount: number;
   averageCheck: number | string;
   margin: number | string;
+  grossProfitDiff?: number | string;
+  averageCheckDiff?: number | string;
 }
 
 export interface ChartDataDto {
@@ -41,6 +47,7 @@ export interface RecentSaleDto {
   status: string;
   revenue: number | string;
   grossProfit: number | string;
+  products?: string;
 }
 
 export interface CategoryAnalyticsDto {
@@ -122,3 +129,4 @@ export function useAnalyticsDashboard(from?: string, to?: string) {
 
   return { loading, error, kpis, managers, chartData, recentSales, categoryData };
 }
+

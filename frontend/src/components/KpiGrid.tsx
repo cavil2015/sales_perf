@@ -1,5 +1,5 @@
 import { KpiDto } from "../hooks/useAnalyticsDashboard";
-import { formatCurrency } from "../utils/formatters";
+import { formatCurrency, formatPercent } from "../utils/formatters";
 
 interface KpiGridProps {
   kpis: KpiDto | null;
@@ -25,16 +25,23 @@ export function KpiGrid({ kpis, loading }: KpiGridProps) {
       <KpiCard
         title="Revenue"
         value={kpis ? formatCurrency(kpis.revenue) : "N/A"}
+        trend={kpis?.revenueDiff}
       />
       <KpiCard
         title="Gross Profit"
         value={kpis ? formatCurrency(kpis.grossProfit) : "N/A"}
+        trend={kpis?.grossProfitDiff}
       />
       <KpiCard
         title="Avg Check"
         value={kpis ? formatCurrency(kpis.averageCheck) : "N/A"}
+        trend={kpis?.averageCheckDiff}
       />
-      <KpiCard title="Sales Count" value={kpis ? kpis.salesCount : "N/A"} />
+      <KpiCard 
+        title="Sales Count" 
+        value={kpis ? kpis.salesCount : "N/A"} 
+        trend={kpis?.salesCountDiff}
+      />
       <KpiCard
         title="Top Manager"
         value={kpis?.topManager || "N/A"}
@@ -47,21 +54,33 @@ export function KpiGrid({ kpis, loading }: KpiGridProps) {
 function KpiCard({
   title,
   value,
+  trend,
   isHighlight = false,
 }: {
   title: string;
   value: React.ReactNode;
+  trend?: number | string;
   isHighlight?: boolean;
 }) {
+  const numTrend = trend ? Number(trend) : undefined;
+  
   return (
     <div
       className={`p-5 rounded-xl shadow-sm border transition-all hover:shadow-md ${isHighlight ? "bg-gradient-to-br from-blue-600 to-indigo-700 text-white border-transparent" : "bg-white border-slate-100"}`}
     >
-      <h3
-        className={`text-sm font-medium ${isHighlight ? "text-blue-100" : "text-slate-500"} mb-1`}
-      >
-        {title}
-      </h3>
+      <div className="flex items-center justify-between mb-1">
+        <h3
+          className={`text-sm font-medium ${isHighlight ? "text-blue-100" : "text-slate-500"}`}
+        >
+          {title}
+        </h3>
+        {numTrend !== undefined && !isHighlight && (
+          <div className={`flex items-center text-xs font-medium ${numTrend > 0 ? "text-emerald-600" : numTrend < 0 ? "text-red-500" : "text-slate-400"}`}>
+            {numTrend > 0 ? "↑ " : numTrend < 0 ? "↓ " : "– "}
+            {numTrend !== 0 ? formatPercent(Math.abs(numTrend)) : ""}
+          </div>
+        )}
+      </div>
       <p
         className={`text-2xl font-bold tracking-tight ${isHighlight ? "text-white" : "text-slate-900"}`}
       >
