@@ -46,7 +46,7 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
           <div className="flex-1 flex items-center justify-center text-slate-400">No data available</div>
         ) : (
           <div className="flex-1 min-h-[250px]">
-            <ResponsiveContainer width="100%" height="100%">
+            <ResponsiveContainer width="100%" height={250}>
               <PieChart>
                 <Pie
                   data={categories}
@@ -104,4 +104,5 @@ export function CategoryAnalytics({ categories, topProducts, loading }: Category
     </div>
   );
 }
+
 
